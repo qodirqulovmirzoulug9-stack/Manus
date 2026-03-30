@@ -1,4 +1,4 @@
-name: Build Tweak
+name: Build Tweak & Reset Limit
 on: [push, pull_request]
 jobs:
   build:
@@ -23,8 +23,23 @@ jobs:
           export THEOS=/Users/runner/theos
           make package FINALPACKAGE=1
           
-      - name: Upload Artifact
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Run Reset Limit Script
+        run: |
+          python reset_limit.py
+          
+      - name: Upload Artifact - Tweak
         uses: actions/upload-artifact@v4
         with:
           name: ManusTweak-Dylib
           path: .theos/obj/main/*.dylib
+      
+      - name: Upload Artifact - Reset Script
+        uses: actions/upload-artifact@v4
+        with:
+          name: reset_limit-script
+          path: reset_limit.py
