@@ -1,0 +1,52 @@
+name: iOS Tweak Build & Compile
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  THEOS: /Users/runner/theos
+  SDKVERSION: 14.5
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Theos
+        run: |
+          sudo rm -rf /Users/runner/theos
+          git clone --recursive https://github.com/theos/theos.git /Users/runner/theos
+          
+          # SDK yuklab olish (Kompilyatsiya uchun shart)
+          mkdir -p /Users/runner/theos/sdks
+          curl -L -f https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS14.5.sdk.tar.xz -o /tmp/sdk.tar.xz
+          tar -xf /tmp/sdk.tar.xz -C /Users/runner/theos/sdks/
+          rm /tmp/sdk.tar.xz
+      
+      - name: Build Tweak
+        run: |
+          export THEOS=/Users/runner/theos
+          make package FINALPACKAGE=1
+      
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tweak-deb
+          path: packages/*.deb
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
